@@ -71,7 +71,6 @@ function importPlayer(ready = false) {
     // var ep_id = preservedState.watch.id;
     // var ep = preservedState.content.media.byId[ep_id];
     var lang = location.href.match(/\/(.*?)\/watch/)[1].split('-');
-    var ep_lang = lang[0] + lang[1].toUpperCase();
     var ep_id = location.href.match(/watch\/(.*?)\//)[1];
 
     var episode = document.querySelector('.erc-current-media-info > h1')?.textContent;
@@ -86,7 +85,7 @@ function importPlayer(ready = false) {
     var message = {
         'playback': playback,
         'id': ep_id,
-        'lang': ep_lang,
+        'lang': '',
         'up_next': up_next ? up_next.href : undefined,
         'series': series ? series : undefined,
         'episode': episode ? episode : undefined,
@@ -117,7 +116,8 @@ function addPlayer(element, playerInfo, beta = false) {
     chrome.storage.sync.get(['forcemp4', 'aseguir', 'cooldown', 'webvideocaster'], function (items) {
         ifrm.onload = async function () {
             let media = await getData(playerInfo.id);
-            playerInfo['video_config_media'] = media;
+            playerInfo['video_config_media'] = media[0];
+            playerInfo['lang'] = media[1].replace('-', '');
             playerInfo['webvideocaster'] = items.webvideocaster === undefined ? false : items.webvideocaster;
             playerInfo['up_next_cooldown'] = items.cooldown === undefined ? 5 : items.cooldown;
             playerInfo['up_next_enable'] = items.aseguir === undefined ? true : items.aseguir;
@@ -136,7 +136,8 @@ async function getData(video_id) {
 
         let localToken = localStorage.getItem('token');
         let allTokens = JSON.parse(localToken);
-        let mediaId = await getMediaId(video_id, allTokens.token);
+        let mediaInfo = await getMediaId(video_id, allTokens.token);
+        let mediaId = mediaInfo[0];
         if (mediaId == null) continue;
         let url = `https://beta-api.crunchyroll.com/cms/v2${allTokens.cms.bucket}/videos/${mediaId}/streams?Policy=${allTokens.cms.policy}&Signature=${allTokens.cms.signature}&Key-Pair-Id=${allTokens.cms.key_pair_id}`;
         let response_media = await fetchByPass(url, {
@@ -150,12 +151,12 @@ async function getData(video_id) {
             localStorage.removeItem('token');
             continue;
         }
-        return response_media;
+        return [response_media, mediaId[1]];
     }
     console.log('[CR Premium] Erro ao pegar dados da stream...');
 }
 
-async function getMediaId(video_id, token) {
+async function getMediaInfo(video_id, token) {
     let resp = await fetchByPass(`https://beta-api.crunchyroll.com/content/v2/cms/objects/${video_id}?ratings=true&locale=pt-BR`, {
         method: 'GET',
         headers: {
@@ -168,7 +169,7 @@ async function getMediaId(video_id, token) {
         return null;
     }
     let json = JSON.parse(resp);
-    return json.data[0].episode_metadata.versions[0].media_guid;
+    return [json.data[0].episode_metadata.versions[0].media_guid, json.data[0].episode_metadata.subtitle_locales[0]];
 }
 
 async function getToken() {
