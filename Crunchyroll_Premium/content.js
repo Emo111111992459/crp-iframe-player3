@@ -151,7 +151,7 @@ async function getData(video_id) {
             localStorage.removeItem('token');
             continue;
         }
-        return [response_media, mediaId[1]];
+        return [response_media, mediaInfo[1]];
     }
     console.log('[CR Premium] Erro ao pegar dados da stream...');
 }
