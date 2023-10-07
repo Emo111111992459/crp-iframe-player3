@@ -137,6 +137,7 @@ async function getData(video_id) {
         let localToken = localStorage.getItem('token');
         let allTokens = JSON.parse(localToken);
         let mediaInfo = await getMediaInfo(video_id, allTokens.token);
+        if (mediaInfo == null) continue;
         let mediaId = mediaInfo[0];
         if (mediaId == null) continue;
         let url = `https://beta-api.crunchyroll.com/cms/v2${allTokens.cms.bucket}/videos/${mediaId}/streams?Policy=${allTokens.cms.policy}&Signature=${allTokens.cms.signature}&Key-Pair-Id=${allTokens.cms.key_pair_id}`;
